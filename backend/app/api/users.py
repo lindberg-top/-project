@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
-from db.session import SessionLocal
-from models.user import User
-
+from backend.app.db.session import SessionLocal
+from backend.app.models.user import User
+from backend.app.schemas.user import UserCreate
+from backend.app.api.secret_key import generate_key
 router = APIRouter(prefix="/users", tags=["Users"])
 
 def get_db():
@@ -14,28 +14,35 @@ def get_db():
         db.close()
         
 
-@router.post("/")
+@router.post("/users/")
 def created_user(telegram_id: int, db: Session = Depends(get_db)):
-    user = User(telegram_id=telegram_id)
+    db_user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if db_user:
+        HTTPException(status_code=404, detail="User already exists")
+        
+    vpn_key = generate_key()
+    new_user = User(telegram_id=telegram_id, vpn_key=vpn_key)
     
-    db.add(user)
+    
+    db.add(new_user)
     db.commit()
-    db.refresh(user)
+    db.refresh(new_user)
     
-    return {"message": "user created", "id": {user.id}}
+    return {"id": {new_user.id}, "telegram_id": {new_user.telegram_id}, "vpn_key": {new_user.vpn_key}}
 
 
-@router.get("/{user_id}")
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+@router.get("/users/{telegram_id}/vpn_key")
+def get_vpn_key(telegram_id: int, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if db_user is None:
+        HTTPException(status_code=404, detail="User not found")
     
-    if not user:
-        return {"message": "user not found"}
+    return {"vpn_key": db_user.vpn_key}
+
     
-    return user
 
 
-@router.delete("/{user_id}")
+@router.delete("/")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     
