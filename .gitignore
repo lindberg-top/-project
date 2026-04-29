@@ -1,16 +1,16 @@
-# Виртуальное окружение
+
 venv/
 
-# Кэш Python
+
 __pycache__/
 *.pyc
 
-# Переменные окружения (пароли, ключи)
+
 .env
 
-# macOS мусор
+
 .DS_Store
 
-# IDE (если используешь PyCharm / VSCode)
+
 .idea/
 .vscode/
