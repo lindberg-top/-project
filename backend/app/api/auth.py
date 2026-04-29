@@ -1,22 +1,13 @@
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+from passlib.context import CryptContext
+import hashlib
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-from backend.app.api.users import get_db
-from backend.app.models.user import User
+def hash_token(token: str):
+    token = hashlib.sha256(token.encode()).hexdigest()
+    return pwd_context.hash(token)
 
-security = HTTPBearer()
 
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
-):
-    token = credentials.credentials
+def verify_token(plain_token: str, hashed_token: str):
+    plain_token = hashlib.sha256(plain_token.encode()).hexdigest()
     
-    user = db.query(User).filter(User.vpn_key == token).first()
-    
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    return user 
+    return pwd_context.verify(plain_token, hashed_token)

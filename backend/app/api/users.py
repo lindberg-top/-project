@@ -4,38 +4,38 @@ from backend.app.db.session import SessionLocal
 from backend.app.models.user import User
 from backend.app.schemas.user import UserCreate
 from backend.app.api.secret_key import generate_key
+from backend.app.api.auth import hash_token
+from backend.app.db.deps import get_db
 import logging
+import secrets
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
         
-
 @router.post("/")
 def created_user(telegram_id: int, db: Session = Depends(get_db)):
-    logging.info("Created User")
+    
+    
     db_user = db.query(User).filter(User.telegram_id == telegram_id).first()
     if db_user:
-        HTTPException(status_code=404, detail="User already exists")
+        raise HTTPException(status_code=400, detail="User already exists")
         
-    vpn_key = generate_key()
-    new_user = User(telegram_id=telegram_id, vpn_key=vpn_key)
+    raw_key = generate_key()
+    
+    hashed_key = hash_token(raw_key)
+    
+    new_user = User(telegram_id=telegram_id, vpn_key_hash=hashed_key)
+    logging.info("User created")
     
     
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     
-    return {"id": {new_user.id}, "telegram_id": {new_user.telegram_id}, "vpn_key": {new_user.vpn_key}}
+    return {"id": new_user.id, "telegram_id": new_user.telegram_id, "vpn_key": raw_key}
 
 
 @router.get("/{telegram_id}/vpn_key")
@@ -43,9 +43,9 @@ def get_vpn_key(telegram_id: int, db: Session = Depends(get_db)):
     logging.info("Проверить пользователя по тг айди")
     db_user = db.query(User).filter(User.telegram_id == telegram_id).first()
     if db_user is None:
-        HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")
     
-    return {"vpn_key": db_user.vpn_key}
+    return {"vpn_key_hash": db_user.vpn_key_hash}
 
     
 @router.delete("/{user_id}")
