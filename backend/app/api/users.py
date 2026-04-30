@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.app.db.session import SessionLocal
 from backend.app.models.user import User
-from backend.app.schemas.user import UserCreate
 from backend.app.api.secret_key import generate_key
 from backend.app.api.auth import hash_token
 from backend.app.db.deps import get_db
+from backend.app.api.auth import verify_token
+from datetime import datetime
 import logging
 import secrets
 
@@ -64,3 +65,22 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     logger.info(f"User deleted: {user_id}")
     
     return {"message": "User deleted"}
+
+
+@router.post("/verify-key")
+def verify_vpn_key(token: str, db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    
+    for user in users:
+        if verify_token(token, user.vpn_key_hash):
+            
+            if not user.subscription_until or user.subscription_until < datetime.utcnow():
+                raise HTTPException(status_code=403, detail="Subscription expired")
+        
+        return {"message": "Ok", "user_id": user.id}
+        
+    raise HTTPException(status_code=401, detail="Invalid key")
+
+
+
+
