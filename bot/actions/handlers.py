@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.filters.command import Command
 from aiogram.types import (ReplyKeyboardMarkup, 
                            Message, 
@@ -7,12 +7,9 @@ from aiogram.types import (ReplyKeyboardMarkup,
                            KeyboardButton, 
                            callback_query)
 
-
-
-
 router = Router()
 
-
+could_send_tech_team = False
     
 def start_reply_btns():
     markup = InlineKeyboardMarkup(
@@ -22,18 +19,73 @@ def start_reply_btns():
     return markup
 
 
-@router.callback_query(lambda c: c.data == "subscribe")
-async def subscribe_event(callback):
-    await callback.message.answer('hello1')
     
 @router.callback_query(lambda c: c.data == "profile")
 async def profile_event(callback):
-    await callback.message.answer('hello2')
+    await callback.message.answer('hello1')
 
+@router.callback_query(lambda c: c.data == "subscribe")
+async def subscribe_event(callback):
+    await callback.message.answer('hello2')
 
 @router.message(Command('start'))
 async def begin(message: Message):
-    await message.answer("some text", reply_markup=start_reply_btns())
+    await message.answer(f"id: {message.chat.id}", reply_markup=start_reply_btns())
+
+
+
+@router.message(Command("support"))
+async def support(message: Message):
+    global could_send_tech_team
+    could_send_tech_team = True
+    await message.answer(f"Здраствуйте! Меня зовут Ирина, как я могу вам помочь 😃? \n staus {could_send_tech_team}")
+
+
+chat_user_id = None
+
+@router.message(F.text)
+async def speech(message: Message, bot: Bot):
+    if message.text == "exit":
+        await message.answer('спасибо за диалог, было приятно с вами пообщатся :) Всего доброго!')
+        global could_send_tech_team
+        could_send_tech_team = False
+        
+    if could_send_tech_team:
+        if not message.chat.id == 7449889285:
+            await bot.send_message(chat_id=7449889285, text=f"сообщение: {message.text} \n id чата: {message.chat.id}")
+            global chat_user_id
+            chat_user_id = message.chat.id
+        else:
+            # print(message.text)
+            await bot.send_message(chat_id=chat_user_id, text=message.text)
+            
+    else:
+        await message.reply(f'извините но данная команда не разпознана :( \n status: {could_send_tech_team}')
+
+# @router.message(Command("exit"))
+# async def exit_chat(message: Message):
+#     await message.answer('спасибо за диалог, было приятно с вами пообщатся :) Всего доброго!')
+#     global could_send_tech_team
+#     could_send_tech_team = False
+    
+    
+    
+
+# else:
+# @router.message(F.text)
+# async def error(message: Message):
+#     global could_send_tech_team
+#     await message.reply(f'извините но данная команда не разпознана :( \n status: {could_send_tech_team}')
+            
+            
+
+            
+            
+            
+            # @router.message(F.text)
+            # async def tech_response(message_l: Message, bot: Bot):
+
+
 
 
 
