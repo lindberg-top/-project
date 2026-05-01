@@ -45,10 +45,11 @@ chat_user_id = None
 
 @router.message(F.text)
 async def speech(message: Message, bot: Bot):
-    if message.text == "exit":
+    if message.text == "/exit":
         await message.answer('спасибо за диалог, было приятно с вами пообщатся :) Всего доброго!')
         global could_send_tech_team
         could_send_tech_team = False
+        await bot.send_message(chat_id=7449889285, text="пользователь закончил диалог")
         
     if could_send_tech_team:
         if not message.chat.id == 7449889285:
