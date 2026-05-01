@@ -5,32 +5,99 @@ from aiogram.types import (ReplyKeyboardMarkup,
                            InlineKeyboardButton,
                            InlineKeyboardMarkup,
                            KeyboardButton, 
-                           callback_query)
+                           CallbackQuery)
 
 router = Router()
 
 could_send_tech_team = False
-    
+
+
+
+
+
+
+
 def start_reply_btns():
-    markup = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="profile", callback_data='profile')],
-        [InlineKeyboardButton(text="subscribe", callback_data="subscribe")]]
+    markup = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="Профиль", callback_data='profile'), KeyboardButton(text="Купить подписку", callback_data="subscribe")]]
     )
     return markup
 
-
-    
 @router.callback_query(lambda c: c.data == "profile")
 async def profile_event(callback):
     await callback.message.answer('hello1')
 
 @router.callback_query(lambda c: c.data == "subscribe")
 async def subscribe_event(callback):
-    await callback.message.answer('hello2')
+    await callback.message.answer("выбирите продолжительность подписки")
 
 @router.message(Command('start'))
 async def begin(message: Message):
-    await message.answer(f"id: {message.chat.id}", reply_markup=start_reply_btns())
+    await message.answer('добро пожаловать в -------, нажмите на *Профиль если хотите увидеть дополнительную информацию*, нажмите на *Купить подписку* если хотите приобрести подписку', reply_markup=start_reply_btns())
+    
+    
+    
+    
+
+
+
+def subscribes_buttons():
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="1 месяц", callback_data="one_month"),InlineKeyboardButton(text="3 месяца", callback_data="three_month")],
+            [InlineKeyboardButton(text="6 месяцев", callback_data="six_month"), InlineKeyboardButton(text="12 месяцев", callback_data="twelve_month")]
+        ]
+    )
+    return markup
+
+def yes_or_not():
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="Да", callback_data="wants_to_buy"), InlineKeyboardButton(text="Нет", callback_data="doesnt_want_to_buy")]]
+    )
+    return markup
+
+@router.callback_query(lambda c: c.data =="wants_to_buy")
+async def buying_subscribe(callback: CallbackQuery):
+    # await message.answer('подальший код при согласии...')
+    await callback.message.answer('выбирите подписку', reply_markup=subscribes_buttons())
+    
+@router.callback_query(lambda c: c.data =="one_month")
+async def buying_subscribe(callback: CallbackQuery):
+    # await message.answer('подальший код при согласии...')
+    await callback.message.answer('подписка на 1 месяц успешно обретена!')
+    
+@router.callback_query(lambda c: c.data =="three_month")
+async def buying_subscribe(callback: CallbackQuery):
+    # await message.answer('подальший код при согласии...')
+    await callback.message.answer('подписка на 3 месяца успешно обретена!')
+    
+@router.callback_query(lambda c: c.data =="six_month")
+async def buying_subscribe(callback: CallbackQuery):
+    # await message.answer('подальший код при согласии...')
+    await callback.message.answer('подписка на 6 месяцев успешно обретена!')
+    
+@router.callback_query(lambda c: c.data =="twelve_month")
+async def buying_subscribe(callback: CallbackQuery):
+    # await message.answer('подальший код при согласии...')
+    await callback.message.answer('подписка на 12 месяцев успешно обретена!')
+
+@router.message(F.text == "Купить подписку")
+async def buy_subscribe(message: Message):
+    await message.answer("у вас нет в наличии активных подписок, желаете приобрести?", reply_markup=yes_or_not())
+
+
+@router.message(F.text == "Профиль")
+async def buy_subscribe(message: Message):
+    await message.answer("ваш профиль: ")
+
+
+
+    
+@router.callback_query(lambda c: c.data =="doesnt_want_to_buy")
+async def buying_subscribe(message: Message):
+    await message.answer('подальший код при отказе...')
+    
+
 
 
 
@@ -38,107 +105,27 @@ async def begin(message: Message):
 async def support(message: Message):
     global could_send_tech_team
     could_send_tech_team = True
-    await message.answer(f"Здраствуйте! Меня зовут Ирина, как я могу вам помочь 😃? \n staus {could_send_tech_team}")
-
+    await message.answer(f"Здраствуйте! Меня зовут Ирина, как я могу вам помочь 😃?")
 
 chat_user_id = None
 
+def stop_chat():
+    global could_send_tech_team
+    could_send_tech_team = False
+
 @router.message(F.text)
-async def speech(message: Message, bot: Bot):
-    if message.text == "/exit":
-        await message.answer('спасибо за диалог, было приятно с вами пообщатся :) Всего доброго!')
-        global could_send_tech_team
-        could_send_tech_team = False
-        await bot.send_message(chat_id=7449889285, text="пользователь закончил диалог")
-        
+async def speech(message: Message, bot: Bot):        
     if could_send_tech_team:
+        if message.text == "/exit":
+            await message.answer('спасибо за диалог, было приятно с вами пообщатся :) Всего доброго!')
+            stop_chat()
+            await bot.send_message(chat_id=7449889285, text="пользователь закончил диалог")
         if not message.chat.id == 7449889285:
             await bot.send_message(chat_id=7449889285, text=f"сообщение: {message.text} \n id чата: {message.chat.id}")
             global chat_user_id
             chat_user_id = message.chat.id
         else:
-            # print(message.text)
             await bot.send_message(chat_id=chat_user_id, text=message.text)
             
     else:
-        await message.reply(f'извините но данная команда не разпознана :( \n status: {could_send_tech_team}')
-
-# @router.message(Command("exit"))
-# async def exit_chat(message: Message):
-#     await message.answer('спасибо за диалог, было приятно с вами пообщатся :) Всего доброго!')
-#     global could_send_tech_team
-#     could_send_tech_team = False
-    
-    
-    
-
-# else:
-# @router.message(F.text)
-# async def error(message: Message):
-#     global could_send_tech_team
-#     await message.reply(f'извините но данная команда не разпознана :( \n status: {could_send_tech_team}')
-            
-            
-
-            
-            
-            
-            # @router.message(F.text)
-            # async def tech_response(message_l: Message, bot: Bot):
-
-
-
-
-
-
-
-# class Form(StatesGroup):
-#     name = State()
-#     email = State()
-#     phone_number = State()
-#     password = State()
-
-# @router.message(Command('start'))
-# async def start_program(message: types.Message, state: FSMContext):
-#     await message.answer("Добро пожаловать в -------! \n Мы рады тебя приветствовать и готовы предложить самые лучшие условия, но перед эти давай пройдем регистрацию\n напиши свое имя")
-#     await state.set_state(Form.name)
-
-# @router.message(Form.name, F.text)
-# async def set_name(message: types.Message, state: FSMContext):
-#     await state.update_data(name=message.text)
-#     await message.answer('отлично теперь напиши свою почту:')
-#     await state.set_state(Form.email)
-    
-
-# @router.message(Form.email, F.text)
-# async def set_email(message: types.Message, state: FSMContext):
-#     await state.update_data(email=message.text)
-#     await message.answer('отлично теперь напиши свой номер телефона (начиная с индекса...):')
-#     await state.set_state(Form.phone_number)
-    
-# @router.message(Form.phone_number, F.text)
-# async def set_phone_number(message: types.Message, state: FSMContext):
-#     await state.update_data(phone_number=message.text)
-#     await message.answer('отлично теперь теперь придумай пароль:')
-#     await state.set_state(Form.password)
-    
-# @router.message(Form.password, F.text)
-# async def set_password(message: types.Message, state: FSMContext):
-#     await state.update_data(password=message.text)
-    
-#     data = await state.get_data()
-#     name = data["name"]
-#     phone_number = data["phone_number"]
-#     email = data["email"]
-#     password = data["password"]
-    
-#     await message.answer(f'анкета заполнена! Все ли правильно указано?\n\n имя: {name}\n номер телефона: {phone_number}\n email: {email}\n пароль: {password}')
-    
-    
-
-    # await state.set_state()
-    
-# @router.message(Command('cancel'))
-# async def cancel_form(message: types.Message, state: FSMContext):
-#     await state.clear()
-
+        await message.reply(f'извините но данная команда не разпознана :(')
